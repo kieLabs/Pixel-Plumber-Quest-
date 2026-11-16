@@ -1,0 +1,1847 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title>Pixel Plumber Quest — Unlimited Danger Edition</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#070810;touch-action:none;font-family:'Courier New',monospace}
+button{font:inherit;cursor:pointer}
+#wrap{position:fixed;inset:0;display:grid;place-items:center;background:#070810;overflow:hidden}
+#game{display:block;width:100vw;height:100vh;background:#68c9f4;image-rendering:pixelated;image-rendering:crisp-edges;object-fit:contain}
+
+/* HUD */
+#hud{position:fixed;top:0;left:50%;transform:translateX(-50%);width:min(1120px,100vw);padding:max(8px,env(safe-area-inset-top)) 14px 8px;color:#fff;text-shadow:2px 2px 0 #000,-1px -1px 0 #000;display:flex;justify-content:space-between;align-items:center;gap:8px;z-index:8;font:bold 13px monospace;pointer-events:none}
+.hudGroup{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.hudItem{white-space:nowrap;background:rgba(0,0,0,.45);padding:4px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.2)}
+.hudItem span{color:#ffd83d}
+#dangerBadge{background:rgba(190,20,40,.85);border-color:#ff6b6b;color:#fff;display:none;animation:pulseDanger .55s infinite alternate}
+@keyframes pulseDanger{from{transform:scale(1);box-shadow:0 0 6px #ff2a2a}to{transform:scale(1.08);box-shadow:0 0 16px #ff0000}}
+
+/* Top Action Buttons */
+#topBtns{position:fixed;right:max(12px,env(safe-area-inset-right));top:max(44px,calc(env(safe-area-inset-top) + 38px));z-index:12;display:flex;gap:8px}
+.iconBtn{width:40px;height:40px;border:2px solid rgba(255,255,255,.75);border-radius:10px;background:rgba(12,16,32,.8);color:#fff;font:bold 18px monospace;display:grid;place-items:center;box-shadow:0 4px 10px rgba(0,0,0,.6);touch-action:manipulation}
+.iconBtn:active{transform:scale(.92);background:#ffd83d;color:#000}
+
+/* Mobile Controls */
+#mobile{position:fixed;inset:0;z-index:10;pointer-events:none}
+.pad{position:absolute;bottom:max(14px,env(safe-area-inset-bottom));display:flex;gap:12px;pointer-events:auto;align-items:flex-end}
+#move{left:max(14px,env(safe-area-inset-left))}
+#act{right:max(14px,env(safe-area-inset-right))}
+.btn{width:68px;height:68px;border:3px solid rgba(255,255,255,.78);border-radius:50%;background:rgba(10,14,26,.55);color:#fff;font:bold 28px monospace;display:grid;place-items:center;box-shadow:0 6px 14px rgba(0,0,0,.65);touch-action:none;backdrop-filter:blur(2px)}
+.btn:active,.btn.active{background:rgba(255,216,61,.45);border-color:#ffd83d;transform:scale(.92)}
+#jumpBtn{width:76px;height:76px;font-size:32px;border-color:#72efdd;background:rgba(18,75,88,.58)}
+#fireBtn{width:58px;height:58px;font-size:22px;border-color:#ff7b54;background:rgba(110,30,20,.58)}
+#dashBtn{width:56px;height:56px;font-size:20px;border-color:#ffd83d;background:rgba(95,75,15,.58)}
+#downBtn{width:56px;height:56px;font-size:22px}
+
+/* Overlays & Shop */
+#overlay,#shopModal{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:rgba(4,6,14,.86);color:#fff;text-align:center;padding:16px;backdrop-filter:blur(4px)}
+#shopModal{display:none;z-index:25}
+.panel{width:min(740px,95vw);max-height:90vh;overflow-y:auto;padding:22px;border:4px solid #fff;background:linear-gradient(180deg,#19203a 0%,#0f1324 100%);box-shadow:0 12px 35px #000}
+.panel h1{font-size:clamp(20px,4.5vw,38px);line-height:1.25;margin:0 0 12px;color:#ffd83d;text-shadow:3px 3px #6b2b00}
+.panel p{font-size:13px;line-height:1.7;color:#d6def0;margin:8px 0 16px}
+.btnRow{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.start{font:bold 14px monospace;padding:12px 20px;border:3px solid #fff;background:#d94848;color:#fff;box-shadow:4px 4px #000;transition:.12s}
+.start.secondary{background:#2b72b8}
+.start.gold{background:#b87d14}
+.start:active{transform:translate(2px,2px);box-shadow:2px 2px #000}
+
+/* Shop Grid */
+.shopGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:14px 0;text-align:left}
+.shopCard{background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.25);padding:10px;border-radius:8px;display:flex;flex-direction:column;justify-content:space-between;gap:8px}
+.shopCard h3{margin:0;color:#ffd83d;font-size:14px}
+.shopCard small{color:#b8c4de;font-size:11px;line-height:1.4;display:block}
+.buyBtn{padding:7px 10px;border:2px solid #fff;background:#268955;color:#fff;font:bold 12px monospace;text-align:center}
+.buyBtn.owned{background:#444;border-color:#888;color:#aaa;cursor:default}
+
+/* Toast & Banner */
+#toast{position:fixed;left:50%;top:max(72px,calc(env(safe-area-inset-top) + 52px));transform:translateX(-50%);z-index:15;color:#fff;background:rgba(14,20,38,.94);padding:8px 16px;border:2px solid #ffd83d;font:bold 13px monospace;opacity:0;transition:.2s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 14px #000}
+#dangerBanner{position:fixed;left:50%;top:32%;transform:translate(-50%,-50%) scale(.9);z-index:14;color:#ff2e4c;background:rgba(12,0,6,.9);padding:12px 24px;border:3px solid #ff2e4c;font:bold clamp(16px,3.5vw,28px) monospace;text-shadow:0 0 12px #ff002b;opacity:0;pointer-events:none;transition:.25s;letter-spacing:2px;box-shadow:0 0 30px rgba(255,0,50,.5)}
+
+/* Portrait Warning */
+#rotate-msg{display:none;position:fixed;inset:0;background:#090b12;color:#fff;z-index:9999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
+#rotate-msg svg{width:70px;height:70px;fill:#ffd83d;margin-bottom:16px}
+#rotate-msg h2{font:bold 18px monospace;color:#ffd83d;margin:0 0 8px}
+#rotate-msg p{font-size:12px;color:#aaa;max-width:280px;line-height:1.6}
+
+@media (orientation:portrait) and (max-width:900px){
+ #rotate-msg{display:flex}
+ #wrap,#hud,#mobile,#overlay,#shopModal,#toast,#topBtns,#dangerBanner{display:none!important}
+}
+@media (max-width:740px){
+ #hud{font-size:10px;padding:6px 8px}
+ .hudGroup{gap:6px}
+ .btn{width:60px;height:60px;font-size:24px}
+ #jumpBtn{width:68px;height:68px;font-size:28px}
+ #fireBtn,#dashBtn,#downBtn{width:50px;height:50px;font-size:19px}
+ .pad{gap:8px;bottom:10px}
+ .iconBtn{width:34px;height:34px;font-size:15px}
+}
+@media (max-height:480px) and (orientation:landscape){
+ #hud{font-size:9px;padding:4px 8px}
+ .btn{width:54px;height:54px;font-size:22px}
+ #jumpBtn{width:62px;height:62px;font-size:25px}
+ #fireBtn,#dashBtn,#downBtn{width:46px;height:46px;font-size:17px}
+ .pad{bottom:8px;gap:7px}
+}
+</style>
+</head>
+<body>
+
+<div id="rotate-msg">
+ <svg viewBox="0 0 24 24"><path d="M16 1H8C6.34 1 5 2.34 5 4v16c0 1.66 1.34 3 3 3h8c1.66 0 3-1.34 3-3V4c0-1.66-1.34-3-3-3zm1 19c0 .55-.45 1-1 1H8c-.55 0-1-.45-1-1V4c0-.55.45-1 1-1h8c.55 0 1 .45 1 1v16zM7 6h10v12H7z"/></svg>
+ <h2>ROTATE YOUR PHONE</h2>
+ <p>Landscape mode me phone ghumayein taaki full screen controls aur Danger Zones sahi se dikhein.</p>
+</div>
+
+<div id="wrap"><canvas id="game" width="960" height="540"></canvas></div>
+
+<div id="hud">
+ <div class="hudGroup">
+  <div class="hudItem">SCORE <span id="score">000000</span></div>
+  <div class="hudItem">COINS <span id="coins">00</span></div>
+  <div class="hudItem">LIVES <span id="lives">♥3</span></div>
+ </div>
+ <div class="hudGroup">
+  <div class="hudItem" id="dangerBadge">⚠ DANGER ZONE</div>
+  <div class="hudItem">LEVEL <span id="world">1-1 (LV 1)</span></div>
+  <div class="hudItem">BIOME <span id="biomeTxt">MEADOW</span></div>
+  <div class="hudItem">TIME <span id="time">400</span></div>
+ </div>
+</div>
+
+<div id="topBtns">
+ <button class="iconBtn" id="shopBtn" title="Upgrade Shop">🛒</button>
+ <button class="iconBtn" id="pauseBtn" title="Pause Game">⏸</button>
+ <button class="iconBtn" id="fsBtn" title="Fullscreen">⛶</button>
+</div>
+
+<div id="toast"></div>
+<div id="dangerBanner">⚠ DANGER ZONE ENTERED ⚠</div>
+
+<div id="mobile">
+ <div id="move" class="pad">
+  <button class="btn" id="leftBtn" data-key="left" aria-label="Move Left">◀</button>
+  <button class="btn" id="rightBtn" data-key="right" aria-label="Move Right">▶</button>
+  <button class="btn" id="downBtn" data-key="down" aria-label="Crouch / Pipe">▼</button>
+ </div>
+ <div id="act" class="pad">
+  <button class="btn" id="dashBtn" data-action="dash" aria-label="Dash / Sprint">⚡</button>
+  <button class="btn" id="fireBtn" data-action="fire" aria-label="Fireball">●</button>
+  <button class="btn" id="jumpBtn" data-key="jump" aria-label="Jump">▲</button>
+ </div>
+</div>
+
+<div id="overlay">
+ <div class="panel">
+  <h1 id="title">PIXEL PLUMBER: UNLIMITED</h1>
+  <p id="msg">
+   <b>Unlimited Procedural Levels (1 to ∞)</b> • 12 Unique Biomes & Horror Zones<br>
+   8 Wild Animals & Haunted Creatures • Mid-Level Checkpoints & Bosses<br>
+   <span style="color:#72efdd">Controls: Arrow/WASD or Touch Buttons • ▲ Jump (Double Jump!) • ⚡ Dash • ● Fire</span>
+  </p>
+  <div class="btnRow">
+   <button class="start" id="continueBtn" style="display:none">CONTINUE SAVED</button>
+   <button class="start secondary" id="start">NEW GAME (LV 1)</button>
+   <button class="start gold" id="openShopMain">🛒 UPGRADE SHOP</button>
+  </div>
+ </div>
+</div>
+
+<div id="shopModal">
+ <div class="panel">
+  <h1>🛒 HERO UPGRADE SHOP</h1>
+  <p>Spend your collected coins on permanent abilities! Wallet: <b style="color:#ffd83d"><span id="shopCoins">0</span> COINS</b></p>
+  <div class="shopGrid" id="shopList"></div>
+  <div class="btnRow">
+   <button class="start secondary" id="closeShopBtn">BACK TO GAME</button>
+  </div>
+ </div>
+</div>
+
+<script>
+'use strict';
+
+document.addEventListener('contextmenu',e=>e.preventDefault(),{passive:false});
+document.addEventListener('dragstart',e=>e.preventDefault(),{passive:false});
+document.addEventListener('selectstart',e=>e.preventDefault(),{passive:false});
+
+const C=document.getElementById('game');
+const ctx=C.getContext('2d',{alpha:false});
+const W=960,H=540,GROUND=432;
+ctx.imageSmoothingEnabled=false;
+
+const $=id=>document.getElementById(id);
+const ui={
+ score:$('score'),coins:$('coins'),lives:$('lives'),world:$('world'),
+ biome:$('biomeTxt'),time:$('time'),dangerBadge:$('dangerBadge'),
+ overlay:$('overlay'),title:$('title'),msg:$('msg'),
+ start:$('start'),continueBtn:$('continueBtn'),
+ toast:$('toast'),dangerBanner:$('dangerBanner'),
+ fs:$('fsBtn'),pause:$('pauseBtn'),shopBtn:$('shopBtn'),
+ shopModal:$('shopModal'),shopList:$('shopList'),shopCoins:$('shopCoins'),
+ openShopMain:$('openShopMain'),closeShopBtn:$('closeShopBtn')
+};
+
+/* ---------- SAVE & UPGRADES SYSTEM ---------- */
+const SAVE_KEY='ppq_unlimited_save_v2';
+let save={
+ maxLevel:1,
+ curLevel:1,
+ bankCoins:0,
+ highScore:0,
+ upgrades:{
+  doubleJump:true, // Enabled by default for super-responsive fun!
+  magnet:false,
+  fireStart:false,
+  armorHeart:false,
+  dashBoost:false
+ }
+};
+
+function loadSave(){
+ try{
+  const raw=localStorage.getItem(SAVE_KEY);
+  if(raw){
+   const parsed=JSON.parse(raw);
+   save={...save,...parsed,upgrades:{...save.upgrades,...(parsed.upgrades||{})}};
+  }
+ }catch(_){}
+ if(save.curLevel>1){
+  ui.continueBtn.style.display='inline-block';
+  ui.continueBtn.textContent=`CONTINUE (LV ${save.curLevel})`;
+ }
+}
+function writeSave(){
+ try{localStorage.setItem(SAVE_KEY,JSON.stringify(save))}catch(_){}
+}
+loadSave();
+
+const SHOP_ITEMS=[
+ {id:'magnet',name:'🧲 Coin Magnet',cost:25,desc:'Automatically pulls nearby coins toward you!'},
+ {id:'fireStart',name:'🔥 Blaze Starter',cost:45,desc:'Start every level with Blaze Fireball power!'},
+ {id:'armorHeart',name:'🛡️ Phantom Armor',cost:60,desc:'Absorbs 1 extra hit in every level before shrinking!'},
+ {id:'dashBoost',name:'⚡ Shadow Dash+',cost:40,desc:'Shorter cooldown & longer invulnerability when dashing!'},
+ {id:'extraLife',name:'❤️ +2 Extra Lives',cost:20,desc:'Instantly adds 2 extra lives to your current run!',consumable:true}
+];
+
+function renderShop(){
+ ui.shopCoins.textContent=coinCount;
+ ui.shopList.innerHTML='';
+ for(const item of SHOP_ITEMS){
+  const owned=!item.consumable&&save.upgrades[item.id];
+  const card=document.createElement('div');
+  card.className='shopCard';
+  card.innerHTML=`
+   <div>
+    <h3>${item.name}</h3>
+    <small>${item.desc}</small>
+   </div>
+   <button class="buyBtn ${owned?'owned':''}" data-id="${item.id}">
+    ${owned?'UNLOCKED ✓':`BUY (${item.cost} COINS)`}
+   </button>
+  `;
+  card.querySelector('button').addEventListener('click',()=>{
+   if(owned)return;
+   if(coinCount<item.cost){toast('NOT ENOUGH COINS!');beep(160,.1,'sawtooth');return}
+   coinCount-=item.cost;
+   save.bankCoins=coinCount;
+   if(item.id==='extraLife'){
+    lives+=2;
+    ui.lives.textContent='♥'+lives;
+    toast('+2 EXTRA LIVES ADDED!');
+   }else{
+    save.upgrades[item.id]=true;
+    if(player&&item.id==='fireStart')setForm('fire');
+    if(player&&item.id==='armorHeart')player.shield=1;
+    toast(item.name+' UNLOCKED!');
+   }
+   ui.coins.textContent=String(coinCount).padStart(2,'0');
+   writeSave();
+   beep(660,.08);beep(880,.12);
+   renderShop();
+  });
+  ui.shopList.appendChild(card);
+ }
+}
+
+/* ---------- STATE & GLOBALS ---------- */
+let keys={left:false,right:false,down:false,jump:false,shift:false};
+let state='menu',last=0,timeAcc=0,shake=0,lightningFlash=0;
+let levelNo=1,worldNo=1,stageNo=1,score=0,coinCount=save.bankCoins||0,lives=3,timeLeft=400,cameraX=0;
+let level=null,player=null,particles=[],weather=[],floatingTexts=[],audioCtx=null,transition=null;
+let combo=0,comboTimer=0;
+
+ui.coins.textContent=String(coinCount).padStart(2,'0');
+
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rect=(x,y,w,h)=>({x,y,w,h});
+const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+
+function hash(n){n=Math.sin(n*12.9898+78.233)*43758.5453;return n-Math.floor(n)}
+function rnd(seed){return hash(seed*91.17+levelNo*23.41)}
+
+/* ---------- AUDIO SYNTH ---------- */
+function beep(f=440,d=.06,type='square',vol=.03){
+ try{
+  audioCtx??=new(window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=type;o.frequency.setValueAtTime(f,audioCtx.currentTime);
+  g.gain.setValueAtTime(vol,audioCtx.currentTime);
+  o.connect(g);g.connect(audioCtx.destination);o.start();
+  g.gain.exponentialRampToValueAtTime(.0008,audioCtx.currentTime+d);
+  o.stop(audioCtx.currentTime+d);
+ }catch(_){}
+}
+
+function spookySound(){
+ beep(140,.22,'sawtooth',.04);
+ setTimeout(()=>beep(105,.3,'triangle',.04),120);
+}
+
+function toast(s){
+ ui.toast.textContent=s;ui.toast.style.opacity=1;
+ clearTimeout(toast.t);
+ toast.t=setTimeout(()=>ui.toast.style.opacity=0,1400);
+}
+
+function popText(txt,x,y,color='#ffd83d'){
+ floatingTexts.push({txt,x,y,vy:-1.6,life:1.1,color});
+}
+
+function addScore(n,x,y){
+ score+=Math.max(0,n|0);
+ if(score>save.highScore)save.highScore=score;
+ ui.score.textContent=String(score).padStart(6,'0');
+ if(x!==undefined&&y!==undefined)popText('+'+n,x,y);
+}
+
+function addCoin(n=1,x,y){
+ coinCount+=n;
+ save.bankCoins=coinCount;
+ addScore(100*n);
+ if(x!==undefined)popText('+1 COIN',x,y,'#ffe44d');
+ if(coinCount>0&&coinCount%100===0){
+  lives++;
+  ui.lives.textContent='♥'+lives;
+  toast('100 COINS MILESTONE • +1 LIFE!');
+  beep(880,.15);
+ }
+ ui.coins.textContent=String(coinCount).padStart(2,'0');
+ writeSave();
+}
+
+/* ---------- FULLSCREEN ---------- */
+async function requestLandscape(){
+ try{
+  if(document.fullscreenElement&&screen.orientation?.lock){
+   await screen.orientation.lock('landscape').catch(()=>{});
+  }
+ }catch(_){}
+}
+async function enterFullscreen(){
+ try{
+  const target=document.documentElement;
+  if(!document.fullscreenElement){
+   if(target.requestFullscreen)await target.requestFullscreen({navigationUI:'hide'});
+   else if(target.webkitRequestFullscreen)target.webkitRequestFullscreen();
+  }
+  await requestLandscape();
+ }catch(_){}
+}
+async function exitFullscreen(){
+ try{
+  if(document.fullscreenElement)await document.exitFullscreen();
+  else if(document.webkitFullscreenElement&&document.webkitExitFullscreen)document.webkitExitFullscreen();
+ }catch(_){}
+}
+ui.fs.addEventListener('click',async e=>{
+ e.preventDefault();
+ if(document.fullscreenElement)await exitFullscreen();
+ else await enterFullscreen();
+});
+document.addEventListener('fullscreenchange',()=>{
+ ui.fs.textContent=document.fullscreenElement?'×':'⛶';
+ resizeCanvas();
+});
+window.addEventListener('resize',resizeCanvas);
+function resizeCanvas(){
+ C.width=W;C.height=H;
+ ctx.imageSmoothingEnabled=false;
+}
+
+/* ---------- 12 BIOMES (WITH SCARY / DARAWNA THEMES) ---------- */
+const BIOMES=[
+ {id:'meadow',name:'EMERALD MEADOW',sky:'#5ec2f2',ground:'#8f4d28',top:'#45b849',scary:false,weather:'pollen',animals:['frog','boar','shell']},
+ {id:'jungle',name:'WHISPERING JUNGLE',sky:'#24523b',ground:'#543927',top:'#2ea843',scary:false,weather:'leaves',animals:['frog','spider','boar','bat']},
+ {id:'bloodmoon',name:'BLOOD MOON HORROR',sky:'#1c0612',ground:'#2b1118',top:'#7d1128',scary:true,weather:'ash',animals:['spider','ghost','wolf','bat']},
+ {id:'cave',name:'CRYSTAL CAVERNS',sky:'#12162e',ground:'#3b3a54',top:'#52688f',scary:false,weather:'sparkle',animals:['bat','spider','scorpion','shell']},
+ {id:'graveyard',name:'CURSED GRAVEYARD',sky:'#0e0b1c',ground:'#292436',top:'#4c3d63',scary:true,weather:'fog',animals:['ghost','spider','wolf','bat']},
+ {id:'desert',name:'SCORCHED DUNES',sky:'#d99b52',ground:'#ab6a2b',top:'#e0b458',scary:false,weather:'sand',animals:['scorpion','boar','shell']},
+ {id:'swamp',name:'TOXIC MIRE',sky:'#1b2e21',ground:'#362c22',top:'#529428',scary:true,weather:'rain',animals:['frog','spider','scorpion','ghost']},
+ {id:'tundra',name:'FROZEN PEAKS',sky:'#8abce6',ground:'#546e87',top:'#e6f4ff',scary:false,weather:'snow',animals:['wolf','boar','shell']},
+ {id:'abyss',name:'SHADOW ABYSS',sky:'#05040a',ground:'#14111f',top:'#3d1e54',scary:true,weather:'ash',animals:['ghost','spider','wolf','bat']},
+ {id:'fortress',name:'SKULL FORTRESS',sky:'#1a090d',ground:'#382229',top:'#802626',scary:true,weather:'ash',animals:['wolf','ghost','scorpion','shell']}
+];
+
+function getBiome(n){
+ // Mix deterministic progression with endless variety
+ if(n%5===0)return BIOMES[9]; // Every 5th level is a Boss Skull Fortress
+ if(n%3===0)return BIOMES[[2,4,6,8][Math.floor(n/3)%4]]; // Every 3rd level is guaranteed Scary/Darawna!
+ return BIOMES[(n-1)%BIOMES.length];
+}
+
+/* ---------- FAIR & SOLVABLE UNLIMITED LEVEL GENERATOR ---------- */
+function makeLevel(n){
+ const biome=getBiome(n);
+ // Progressive difficulty that caps at humanly fun/beatable limits
+ const diff=Math.min(1, (n-1)/35);
+ const width=4800+Math.min(4200, n*140);
+ const dangerStart=Math.floor(width*0.54);
+ const dangerEnd=Math.floor(width*0.84);
+
+ const solids=[],items=[],enemies=[],pipes=[],hazards=[],bosses=[],movers=[],springs=[],pendulums=[],scenery=[];
+
+ // Safe starting zone
+ solids.push(rect(0,GROUND,560,120));
+ let x=560;
+
+ while(x<width-650){
+  const inDanger=(x>=dangerStart&&x<=dangerEnd);
+  const segLen=320+Math.floor(rnd(x+1)*360);
+
+  // Gap logic: Strictly capped so player can ALWAYS jump across!
+  // Max normal jump is ~165px; we keep gaps 78px to 142px.
+  if(x>620&&rnd(x+2)<(0.28+diff*0.22+(inDanger?0.12:0))){
+   const gapW=78+Math.floor(rnd(x+3)*(48+diff*16));
+   // If gap is wider or in Danger Zone, add a moving bridge or spring before it!
+   if(gapW>118||inDanger&&rnd(x+4)<0.55){
+    movers.push({
+     x:x+gapW/2-36,y:GROUND-22,w:72,h:16,
+     baseX:x+gapW/2-36,baseY:GROUND-22,
+     rangeX:Math.max(18,gapW/2-20),rangeY:0,
+     spd:1.5+diff*0.8,t:rnd(x+5)*6
+    });
+   }
+   x+=gapW;
+  }
+
+  const end=Math.min(width-650,x+segLen);
+  const actualLen=end-x;
+  if(actualLen<140){x=end;continue;}
+
+  solids.push(rect(x,GROUND,actualLen,120));
+
+  // Scenery props (trees, dead horror trees, tombstones, skull totems)
+  for(let sx=x+50;sx<end-60;sx+=110+Math.floor(rnd(sx)*90)){
+   const propType=biome.scary?(rnd(sx+1)<0.5?'deadtree':rnd(sx+2)<0.5?'tomb':'skullpole'):(rnd(sx+3)<0.6?'tree':'bush');
+   scenery.push({x:sx,y:GROUND,type:propType,eyePhase:rnd(sx+4)*6});
+  }
+
+  // Elevated platforms (always reachable height: 68px or 118px with step/spring)
+  if(actualLen>220&&rnd(x+6)<0.65){
+   const platW=108+Math.floor(rnd(x+7)*3)*36;
+   const platX=x+50+Math.floor(rnd(x+8)*Math.max(20,actualLen-platW-100));
+   const high=rnd(x+9)<0.35;
+   const platY=GROUND-(high?124:74);
+   solids.push(rect(platX,platY,platW,18));
+
+   // If platform is high, put a spring bounce pad so small player can easily reach!
+   if(high){
+    springs.push({x:platX-38,y:GROUND-18,w:26,h:18,anim:0});
+   }
+
+   // Coins or blocks above platform
+   for(let cx=platX+18;cx<platX+platW-18;cx+=36){
+    if(rnd(cx+10)<0.55){
+     items.push({type:rnd(cx+11)<0.45?'core':'brick',x:cx,y:platY-68,w:36,h:36,used:false,bump:0,dead:false});
+    }else{
+     items.push({type:'coin',x:cx+9,y:platY-32,w:18,h:18,t:rnd(cx)*6});
+    }
+   }
+  }
+
+  // Ground Question/Brick blocks (safe margin away from edges so they never block jumps!)
+  if(actualLen>260&&rnd(x+12)<0.58){
+   const bxStart=x+85+Math.floor(rnd(x+13)*(actualLen-200));
+   const count=1+Math.floor(rnd(x+14)*3);
+   for(let b=0;b<count&&bxStart+b*36<end-85;b++){
+    items.push({
+     type:(b===1||rnd(bxStart+b)<0.45)?'core':'brick',
+     x:bxStart+b*36,y:GROUND-78,w:36,h:36,used:false,bump:0,dead:false
+    });
+   }
+  }
+
+  // Ground Hazards (Spikes / Lava / Acid) — NEVER near platform edges!
+  if(actualLen>300&&rnd(x+15)<(0.35+diff*0.25+(inDanger?0.25:0))){
+   const hw=rnd(x+16)<0.55?36:54;
+   const hx=x+95+Math.floor(rnd(x+17)*(actualLen-hw-190));
+   const hType=biome.id==='swamp'?'acid':(biome.scary||inDanger)?'bloodspike':rnd(x+18)<0.5?'spike':'lava';
+   hazards.push({
+    type:hType,x:hx,y:hType==='lava'||hType==='acid'?GROUND-6:GROUND-14,
+    w:hw,h:14
+   });
+   // Add a helpful coin arc over the hazard to guide the player's jump
+   for(let c=-1;c<=1;c++){
+    items.push({type:'coin',x:hx+hw/2+c*24-9,y:GROUND-74+Math.abs(c)*14,w:18,h:18,t:c});
+   }
+  }
+
+  // Danger Zone Swinging Pendulum Blades (High enough to crouch/run under when at side, or jump over!)
+  if(inDanger&&actualLen>260&&rnd(x+19)<0.55){
+   const px=x+actualLen/2;
+   pendulums.push({
+    pivotX:px,pivotY:GROUND-175,len:115,
+    angle:0,speed:2.1+diff*0.7,phase:rnd(x+20)*6
+   });
+  }
+
+  // Subterra Bonus Pipes (Safe placement away from hazards)
+  if(!inDanger&&actualLen>340&&pipes.length<4&&rnd(x+21)<0.32){
+   const px=x+actualLen-110;
+   pipes.push({x:px,y:GROUND-58,w:54,h:58,bonus:true,active:true});
+  }
+
+  // Spawn Animals / Scary Creatures on this segment
+  const enemyCount=1+(actualLen>420&&rnd(x+22)<0.45+diff*0.35?1:0);
+  for(let ec=0;ec<enemyCount;ec++){
+   const ex=x+90+Math.floor(rnd(x+30+ec)*(actualLen-160));
+   const pool=inDanger?['spider','ghost','wolf','boar','scorpion']:biome.animals;
+   const eType=pool[Math.floor(rnd(x+40+ec)*pool.length)];
+   spawnAnimal(enemies,eType,ex,diff,inDanger);
+  }
+
+  x=end;
+ }
+
+ // Final Stretch & Staircase + Boss Arena
+ const arenaStart=width-650;
+ solids.push(rect(arenaStart,GROUND,650,120));
+ // Helpful power-up block before the final stretch/boss
+ items.push({type:'core',x:arenaStart+60,y:GROUND-78,w:36,h:36,used:false,bump:0,dead:false});
+
+ // Checkpoint Flag right before the Danger Zone!
+ const checkpoint={
+  x:dangerStart-70,y:GROUND-86,w:28,h:86,reached:false
+ };
+ // Guarantee solid ground under checkpoint
+ solids.push(rect(dangerStart-120,GROUND,140,120));
+
+ // Coin trail
+ for(let i=0;i<32+Math.min(40,n);i++){
+  const cx=300+Math.floor(rnd(i+200)*(width-1000)/24)*24;
+  const cy=GROUND-52-Math.floor(rnd(i+201)*3)*32;
+  items.push({type:'coin',x:cx,y:cy,w:18,h:18,t:rnd(i+202)*6});
+ }
+
+ // Boss on every 3rd level (Mini-Boss) or 5th level (Major Demon/Beast Boss)
+ if(n%3===0||n%5===0){
+  const isMajor=(n%5===0);
+  const maxHp=isMajor?(4+Math.min(8,Math.floor(n/4))):(2+Math.min(5,Math.floor(n/5)));
+  bosses.push({
+   name:isMajor?`DREAD LORD LV.${n}`:`SHADOW BEAST LV.${n}`,
+   x:width-280,y:GROUND-82,w:62,h:82,
+   hp:maxHp,maxHp:maxHp,
+   vx:0,vy:0,onGround:true,
+   fire:1.5,jumpTimer:2.4,dead:false,major:isMajor
+  });
+ }else{
+  // Classic victory stairs
+  for(let i=0;i<6;i++){
+   solids.push(rect(width-420+i*42,GROUND-18-i*16,42,18+i*16));
+  }
+ }
+
+ return {
+  width,biome,solids,items,enemies,pipes,hazards,bosses,
+  movers,springs,pendulums,scenery,checkpoint,
+  dangerStart,dangerEnd,dangerWarned:false,
+  finishX:width-110
+ };
+}
+
+function spawnAnimal(list,type,x,diff,inDanger){
+ const baseSpd=(0.75+diff*0.75)*(inDanger?1.15:1);
+ const e={
+  type,x,y:GROUND-34,w:32,h:32,
+  vx:-baseSpd,vy:0,baseSpd,
+  dead:false,rolling:false,
+  t:Math.random()*6,
+  anchorY:GROUND-175,
+  charging:false,jumpCd:1.2
+ };
+ if(type==='bat'){e.y=GROUND-105;e.w=28;e.h=24;}
+ if(type==='spider'){e.y=GROUND-150;e.w=30;e.h=28;}
+ if(type==='ghost'){e.y=GROUND-95;e.w=30;e.h=36;}
+ if(type==='wolf'||type==='boar'){e.w=38;e.h=28;e.y=GROUND-28;}
+ if(type==='frog'){e.w=28;e.h=26;e.y=GROUND-26;}
+ list.push(e);
+}
+
+/* ---------- PLAYER INIT & LEVEL LOADING ---------- */
+function newPlayer(spawnX=75,spawnY=GROUND-34){
+ const startFire=save.upgrades.fireStart;
+ return {
+  x:spawnX,y:spawnY-(startFire?24:0),
+  w:startFire?26:24,h:startFire?54:30,
+  vx:0,vy:0,onGround:false,coyote:0,jumpBuffer:0,
+  jumpsLeft:save.upgrades.doubleJump?2:1,
+  form:startFire?'fire':'small',
+  shield:save.upgrades.armorHeart?1:0,
+  facing:1,inv:0,star:0,fireCooldown:0,
+  dashTime:0,dashCd:0,
+  crouch:false,finish:false
+ };
+}
+
+function initWeather(){
+ weather=[];
+ const wType=level?.biome?.weather||'pollen';
+ const count=wType==='rain'||wType==='snow'?55:28;
+ for(let i=0;i<count;i++){
+  weather.push({
+   x:Math.random()*W,y:Math.random()*H,
+   vx:wType==='sand'?-4:wType==='rain'?-1.5:(Math.random()-.5)*0.8,
+   vy:wType==='rain'?8:wType==='snow'?1.8:wType==='ash'?-0.8:0.7,
+   size:wType==='fog'?45:2+Math.random()*3,
+   alpha:0.25+Math.random()*0.5
+  });
+ }
+}
+
+function loadLevel(n,useCheckpoint=false){
+ levelNo=Math.max(1,n|0);
+ save.curLevel=levelNo;
+ if(levelNo>save.maxLevel)save.maxLevel=levelNo;
+ writeSave();
+
+ worldNo=Math.floor((levelNo-1)/5)+1;
+ stageNo=(levelNo-1)%5+1;
+
+ if(!useCheckpoint||!level){
+  level=makeLevel(levelNo);
+ }
+
+ const spawnX=(useCheckpoint&&level.checkpoint?.reached)?level.checkpoint.x+20:75;
+ player=newPlayer(spawnX,GROUND-34);
+ cameraX=clamp(spawnX-220,0,Math.max(0,level.width-W));
+ timeLeft=400;timeAcc=0;particles=[];floatingTexts=[];
+ combo=0;comboTimer=0;
+
+ ui.world.textContent=`${worldNo}-${stageNo} (LV ${levelNo})`;
+ ui.biome.textContent=level.biome.name.split(' ')[0];
+ ui.lives.textContent='♥'+lives;
+ ui.time.textContent=timeLeft;
+ ui.overlay.style.display='none';
+ ui.dangerBadge.style.display='none';
+
+ initWeather();
+ toast(`LEVEL ${levelNo}: ${level.biome.name}`);
+ state='play';
+ if(level.biome.scary)spookySound();
+ else{beep(523,.06);beep(659,.08);}
+}
+
+function startGame(fromLevel=1){
+ score=0;
+ if(lives<=0)lives=3;
+ resetKeys();
+ loadLevel(fromLevel,false);
+}
+
+ui.start.addEventListener('click',async()=>{
+ beep(440,.05);
+ lives=3;
+ await enterFullscreen();
+ startGame(1);
+});
+
+ui.continueBtn.addEventListener('click',async()=>{
+ beep(520,.05);
+ if(lives<=0)lives=3;
+ await enterFullscreen();
+ startGame(save.curLevel||1);
+});
+
+ui.openShopMain.addEventListener('click',()=>{
+ renderShop();
+ ui.shopModal.style.display='grid';
+});
+ui.shopBtn.addEventListener('click',()=>{
+ if(state==='play')state='paused';
+ renderShop();
+ ui.shopModal.style.display='grid';
+});
+ui.closeShopBtn.addEventListener('click',()=>{
+ ui.shopModal.style.display='none';
+ if(state==='paused')state='play';
+});
+ui.pause.addEventListener('click',()=>{
+ if(state==='play'){
+  state='paused';
+  ui.overlay.style.display='grid';
+  ui.title.textContent='GAME PAUSED';
+  ui.msg.innerHTML=`Current Level: <b>LV ${levelNo} (${level.biome.name})</b><br>Coins: ${coinCount} • Score: ${score}`;
+  ui.continueBtn.style.display='inline-block';
+  ui.continueBtn.textContent='RESUME GAME';
+  ui.continueBtn.onclick=()=>{
+   ui.overlay.style.display='none';
+   state='play';
+  };
+ }
+});
+
+/* ---------- SOLID LIST & COLLISIONS ---------- */
+function solidList(){
+ if(state==='bonus'){
+  return [
+   rect(0,GROUND,W,120),
+   rect(180,GROUND-82,180,18),
+   rect(430,GROUND-135,200,18),
+   rect(680,GROUND-82,140,18)
+  ];
+ }
+ return level.solids.concat(
+  level.movers.map(m=>({x:m.x,y:m.y,w:m.w,h:m.h,vx:m.vx||0})),
+  level.pipes.filter(p=>!p.hidden).map(p=>({x:p.x,y:p.y,w:p.w,h:p.h})),
+  level.items.filter(o=>(o.type==='brick'||o.type==='core')&&!o.dead)
+   .map(o=>({x:o.x,y:o.y-o.bump,w:o.w,h:o.h,isBlock:true,ref:o}))
+ );
+}
+
+function hasGroundAt(x,y){
+ const probe={x,y,w:6,h:12};
+ for(const s of level.solids)if(overlap(probe,s))return true;
+ return false;
+}
+
+function resolveX(o){
+ for(const s of solidList())if(overlap(o,s)){
+  if(o.vx>0)o.x=s.x-o.w;
+  else if(o.vx<0)o.x=s.x+s.w;
+  o.vx=0;
+ }
+}
+
+function resolveY(o,isPlayer=false){
+ o.onGround=false;
+ for(const s of solidList())if(overlap(o,s)){
+  if(o.vy>0){
+   o.y=s.y-o.h;o.vy=0;o.onGround=true;
+   if(isPlayer&&s.vx)o.x+=s.vx;
+  }else if(o.vy<0){
+   o.y=s.y+s.h;o.vy=0;
+   if(isPlayer&&s.isBlock)hitBlock(s.ref);
+  }
+ }
+}
+
+/* ---------- PLAYER ABILITIES & DAMAGE ---------- */
+function jump(){
+ if(state!=='play'&&state!=='bonus')return;
+ player.jumpBuffer=0.15;
+}
+
+function triggerDash(){
+ if(state!=='play'&&state!=='bonus')return;
+ if(player.dashCd>0)return;
+ const upgraded=save.upgrades.dashBoost;
+ player.dashTime=upgraded?0.24:0.18;
+ player.dashCd=upgraded?0.65:0.95;
+ player.inv=Math.max(player.inv,player.dashTime+0.08);
+ player.vx=player.facing*(upgraded?10.5:9.2);
+ player.vy=Math.min(player.vy,0);
+ beep(580,.06,'triangle');
+ for(let i=0;i<6;i++){
+  particles.push({x:player.x+player.w/2,y:player.y+player.h/2,vx:-player.facing*Math.random()*3,vy:(Math.random()-.5)*2,life:.35,char:'⚡',color:'#72efdd'});
+ }
+}
+
+function setForm(f){
+ if(player.form===f)return;
+ const oldH=player.h;
+ player.form=f;
+ player.h=f==='small'?30:54;
+ player.w=f==='small'?24:26;
+ player.y-=player.h-oldH;
+}
+
+function damage(){
+ if(player.inv>0||player.star>0||player.dashTime>0)return;
+ if(player.shield>0){
+  player.shield=0;
+  player.inv=1.8;player.vy=-5;
+  shake=6;
+  toast('🛡️ ARMOR SHIELD ABSORBED HIT!');
+  beep(240,.12,'triangle');
+  return;
+ }
+ if(player.form!=='small'){
+  setForm('small');player.inv=2.0;player.vy=-5.5;
+  shake=6;
+  toast('POWER LOST! CAREFUL!');
+  beep(180,.14,'sawtooth');
+  return;
+ }
+ die();
+}
+
+function die(){
+ if(!['play','bonus'].includes(state))return;
+ lives--;
+ ui.lives.textContent='♥'+Math.max(0,lives);
+ state='dead';shake=12;
+ beep(110,.28,'sawtooth');
+ setTimeout(()=>{
+  if(lives>0){
+   // Respawn at Checkpoint if reached!
+   loadLevel(levelNo,true);
+  }else{
+   gameOver();
+  }
+ },900);
+}
+
+function gameOver(){
+ state='gameover';
+ ui.overlay.style.display='grid';
+ ui.title.textContent='💀 YOU FELL IN BATTLE';
+ ui.msg.innerHTML=`Reached <b>LEVEL ${levelNo} (${level.biome.name})</b><br>Final Score: <b>${score}</b> • Saved Coins: <b>${coinCount}</b><br>Don't give up — retry from Level ${levelNo} or upgrade your hero!`;
+ ui.continueBtn.style.display='inline-block';
+ ui.continueBtn.textContent=`RETRY LEVEL ${levelNo}`;
+ ui.continueBtn.onclick=async()=>{
+  lives=3;
+  ui.overlay.style.display='none';
+  loadLevel(levelNo,true);
+ };
+ ui.start.textContent='RESTART FROM LV 1';
+}
+
+function completeLevel(){
+ if(state!=='play')return;
+ state='complete';player.finish=true;
+ const bonus=1000+timeLeft*10;
+ addScore(bonus,player.x,player.y-20);
+ beep(523,.09);setTimeout(()=>beep(659,.09),90);setTimeout(()=>beep(784,.16),180);
+ toast(`LEVEL ${levelNo} CLEARED! +${bonus} PTS`);
+ setTimeout(()=>{
+  // Unlimited progression!
+  loadLevel(levelNo+1,false);
+ },1150);
+}
+
+/* ---------- BLOCKS, POWERUPS & SHOOTING ---------- */
+function spawnItem(type,x,y){
+ level.items.push({type,x,y,w:28,h:28,vy:-3.2,used:false,dead:false,t:0});
+}
+
+function hitBlock(b){
+ if(b.used||b.dead)return;
+ if(b.type==='core'){
+  b.used=true;b.bump=10;
+  const r=rnd(b.x+score+levelNo*7);
+  if(player.form==='small'&&r<0.55)spawnItem('growth',b.x+4,b.y-30);
+  else if(r<0.65)spawnItem('blaze',b.x+4,b.y-30);
+  else if(r<0.82)spawnItem('nova',b.x+4,b.y-30);
+  else addCoin(3,b.x,b.y-20);
+  beep(660,.07);
+ }else if(b.type==='brick'){
+  if(player.form!=='small'){
+   b.dead=true;addScore(50,b.x,b.y);beep(220,.06);
+   for(let i=0;i<6;i++)particles.push({
+    x:b.x+18,y:b.y+18,vx:(Math.random()-.5)*7,
+    vy:-Math.random()*6,life:.7,char:'▪',color:'#d47a42'
+   });
+  }else{
+   b.bump=10;beep(150,.04);
+  }
+ }
+}
+
+function power(t){
+ if(t==='growth'){setForm('super');addScore(1000,player.x,player.y);toast('🍄 SUPER GROWTH!');beep(520,.14)}
+ if(t==='blaze'){setForm('fire');addScore(1000,player.x,player.y);toast('🔥 BLAZE FIRE POWER!');beep(740,.14)}
+ if(t==='nova'){player.star=10;player.inv=10;addScore(1000,player.x,player.y);toast('⭐ NOVA INVINCIBILITY!');beep(960,.18)}
+}
+
+function shoot(){
+ if(!player||player.fireCooldown>0)return;
+ // Allow shooting fireballs in Fire form, or short-range energy kunai if small/super!
+ const isFire=(player.form==='fire');
+ player.fireCooldown=isFire?0.24:0.42;
+ level.items.push({
+  type:'fireball',
+  strong:isFire,
+  x:player.x+(player.facing>0?player.w:-10),
+  y:player.y+player.h*0.38,
+  w:12,h:12,
+  vx:player.facing*(isFire?8.2:6.8),
+  vy:isFire?-1.5:-0.8,
+  life:isFire?1.8:0.55
+ });
+ beep(isFire?440:340,.04);
+}
+
+/* ---------- SUBTERRA BONUS ROOM (FIXED & WORKING!) ---------- */
+let bonusItems=[],bonusReturnX=0;
+function enterBonus(pipe){
+ if(!pipe.bonus||transition||state!=='play')return;
+ transition={phase:'enter',t:0,pipe};
+ bonusReturnX=pipe.x+pipe.w+16;
+ state='pipeIn';keys.down=false;beep(120,.16);
+}
+
+function beginBonus(pipe){
+ state='bonus';transition=null;cameraX=0;
+ player.x=70;player.y=GROUND-player.h;player.vx=0;player.vy=0;
+ pipe.hidden=true;
+ // Populate bonus room with rich coins & a powerup!
+ bonusItems=[];
+ for(let cx=190;cx<=780;cx+=38){
+  bonusItems.push({type:'coin',x:cx,y:GROUND-36,w:18,h:18,t:cx*.02});
+  if(cx>=200&&cx<=620)bonusItems.push({type:'coin',x:cx,y:GROUND-125,w:18,h:18,t:cx*.03});
+ }
+ bonusItems.push({type:'blaze',x:510,y:GROUND-175,w:28,h:28,vy:0,t:0});
+ toast('💎 SECRET SUBTERRA TREASURE ROOM!');
+}
+
+function exitBonus(){
+ state='pipeOut';transition={phase:'exit',t:0};beep(240,.12);
+ setTimeout(()=>{
+  state='play';transition=null;
+  player.x=Math.min(level.finishX-180,bonusReturnX);
+  player.y=GROUND-player.h;player.vx=0;player.vy=0;
+  cameraX=clamp(player.x-260,0,Math.max(0,level.width-W));
+  toast('BACK TO SURFACE!');
+ },550);
+}
+
+function updateBonusTransition(dt){
+ if(!transition)return;
+ transition.t+=dt;
+ if(transition.phase==='enter'&&transition.t>0.55)beginBonus(transition.pipe);
+}
+
+/* ---------- ITEMS, ENEMIES & BOSS AI ---------- */
+function updateItems(dt){
+ const list=(state==='bonus')?bonusItems:level.items;
+ for(let i=list.length-1;i>=0;i--){
+  const o=list[i];if(o.dead)continue;
+  if(o.bump>0)o.bump=Math.max(0,o.bump-65*dt);
+  if(o.type==='coin'){
+   o.t=(o.t||0)+dt*5;
+   // Coin Magnet Upgrade!
+   if(save.upgrades.magnet){
+    const dx=(player.x+player.w/2)-(o.x+9);
+    const dy=(player.y+player.h/2)-(o.y+9);
+    const dist=Math.hypot(dx,dy);
+    if(dist<150){
+     o.x+=dx/dist*5.5;
+     o.y+=dy/dist*5.5;
+    }
+   }
+  }
+
+  if(['growth','blaze','nova'].includes(o.type)){
+   o.vy=(o.vy||0)+0.16;o.y+=o.vy;
+   for(const s of solidList())if(overlap(o,s)&&o.vy>0){o.y=s.y-o.h;o.vy=0;}
+  }
+
+  if(overlap(player,o)){
+   if(o.type==='coin'){
+    addCoin(1,o.x,o.y);list.splice(i,1);beep(880,.035);
+   }else if(['growth','blaze','nova'].includes(o.type)){
+    power(o.type);list.splice(i,1);
+   }
+  }
+ }
+}
+
+function updateProjectiles(dt){
+ for(let i=level.items.length-1;i>=0;i--){
+  const o=level.items[i];
+  if(!['fireball','bossfire'].includes(o.type))continue;
+  o.x+=o.vx;
+  if(o.type==='fireball'){
+   o.life-=dt;
+   if(o.strong){
+    o.vy+=0.22;o.y+=o.vy;
+    for(const s of level.solids)if(overlap(o,s)&&o.vy>0){o.y=s.y-o.h;o.vy=-4.2;}
+   }
+   let hit=false;
+   for(const e of level.enemies){
+    if(!e.dead&&overlap(o,e)){
+     e.dead=true;addScore(200,e.x,e.y);beep(320,.05);hit=true;break;
+    }
+   }
+   for(const b of level.bosses){
+    if(!b.dead&&overlap(o,b)){
+     b.hp-=o.strong?1:0.5;shake=4;beep(210,.05);
+     if(b.hp<=0){b.dead=true;addScore(2000,b.x,b.y);toast('👑 BOSS DEFEATED!');}
+     hit=true;break;
+    }
+   }
+   if(hit||o.life<=0||o.x<cameraX-80||o.x>cameraX+W+80)level.items.splice(i,1);
+  }else{
+   o.y+=o.vy;
+   if(overlap(player,o)){level.items.splice(i,1);damage();}
+   else if(o.x<cameraX-100||o.x>cameraX+W+100||o.y>H)level.items.splice(i,1);
+  }
+ }
+}
+
+function updateEnemies(dt){
+ if(state==='bonus')return;
+ for(let i=level.enemies.length-1;i>=0;i--){
+  const e=level.enemies[i];
+  if(e.dead){level.enemies.splice(i,1);continue;}
+  if(Math.abs(e.x-player.x)>W*1.1)continue; // Active window optimization
+
+  e.t+=dt;
+  const distToPlayer=player.x-e.x;
+
+  // Specific Animal & Creature Behaviors
+  if(e.type==='bat'){
+   e.x+=e.vx*1.15;
+   e.y=GROUND-110+Math.sin(e.t*4)*38;
+  }else if(e.type==='spider'){
+   // Drops down when player is near, climbs back up!
+   const near=Math.abs(distToPlayer)<145;
+   const targetY=near?GROUND-34:e.anchorY;
+   e.y+=(targetY-e.y)*Math.min(1,dt*(near?6:2.5));
+  }else if(e.type==='ghost'){
+   // Scary Ghost: stalks player when player faces away, pauses when player looks right at it!
+   const playerLookingAtGhost=(distToPlayer<0&&player.facing===1)||(distToPlayer>0&&player.facing===-1);
+   if(!playerLookingAtGhost){
+    e.x+=Math.sign(distToPlayer)*e.baseSpd*1.15;
+    e.y+=((player.y-10)-e.y)*dt*1.8;
+   }else{
+    e.y+=Math.sin(e.t*8)*0.4;
+   }
+  }else{
+   // Ground animals (boar, wolf, frog, scorpion, shell)
+   if(e.type==='boar'){
+    // Charges when player is in front within 210px!
+    const inFront=(distToPlayer<0&&e.vx<0)||(distToPlayer>0&&e.vx>0);
+    e.charging=inFront&&Math.abs(distToPlayer)<210&&Math.abs(player.y-e.y)<55;
+    e.vx=Math.sign(e.vx||-1)*e.baseSpd*(e.charging?2.1:1);
+   }else if(e.type==='frog'){
+    e.jumpCd-=dt;
+    if(e.jumpCd<=0&&e.vy===0){
+     e.vy=-6.4;
+     e.vx=(distToPlayer<0?-1:1)*e.baseSpd*1.3;
+     e.jumpCd=1.35;
+    }
+   }else if(e.type==='wolf'){
+    e.vx=Math.sign(distToPlayer||-1)*e.baseSpd*1.35;
+    if(e.vy===0&&Math.abs(distToPlayer)<130&&Math.random()<0.03)e.vy=-5.8;
+   }
+
+   e.vy+=0.32;e.y+=e.vy;
+   let onG=false;
+   for(const s of solidList())if(overlap(e,s)){
+    if(e.vy>0){e.y=s.y-e.h;e.vy=0;onG=true;}
+    else if(e.vy<0){e.y=s.y+s.h;e.vy=0;}
+   }
+
+   // Smart ledge check for scorpions/boars/walkers so they patrol instead of falling
+   if(onG&&!e.rolling&&e.type!=='frog'){
+    const probeX=e.vx>0?e.x+e.w+4:e.x-10;
+    if(!hasGroundAt(probeX,e.y+e.h+4))e.vx*=-1;
+   }
+
+   e.x+=e.vx;
+   for(const s of solidList())if(overlap(e,s)){
+    e.x=e.vx<0?s.x+s.w:s.x-e.w;
+    e.vx*=-1;
+   }
+  }
+
+  if(e.type==='shell'&&e.rolling)e.vx=5.5*(e.vx<0?-1:1);
+
+  // Player vs Creature Collision
+  if(overlap(player,e)){
+   const stomp=(player.vy>0&&(player.y+player.h-e.y)<22);
+   if(player.star>0||player.dashTime>0){
+    e.dead=true;
+    combo++;comboTimer=2.5;
+    addScore(200*combo,e.x,e.y);
+    beep(360,.05);
+   }else if(stomp){
+    combo++;comboTimer=2.5;
+    if(e.type==='shell'&&!e.rolling){
+     e.rolling=true;e.vx=player.x<e.x?6.2:-6.2;
+     player.vy=-7.6;addScore(300,e.x,e.y);toast('🐢 SHELL KICK!');
+    }else{
+     e.dead=true;player.vy=-7.8;
+     addScore(200*combo,e.x,e.y);
+     if(combo>=2)popText(`${combo}x COMBO!`,player.x,player.y-18,'#72efdd');
+    }
+    player.jumpsLeft=save.upgrades.doubleJump?2:1;
+    beep(300+Math.min(400,combo*60),.06);
+   }else{
+    damage();
+   }
+  }
+
+  // Rolling shell mows down other enemies
+  if(e.rolling){
+   for(const other of level.enemies){
+    if(other!==e&&!other.dead&&overlap(e,other)){
+     other.dead=true;addScore(250,other.x,other.y);beep(340,.04);
+    }
+   }
+  }
+ }
+}
+
+function updateBosses(dt){
+ for(const b of level.bosses){
+  if(b.dead)continue;
+  if(Math.abs(b.x-player.x)>W)continue;
+
+  b.vx=(player.x<b.x?-1:1)*(0.85+Math.min(1.1,levelNo*0.02));
+  b.x=clamp(b.x+b.vx,level.width-620,level.width-90);
+
+  b.jumpTimer-=dt;
+  if(b.jumpTimer<=0&&b.onGround){
+   b.vy=-7.5;b.onGround=false;b.jumpTimer=2.2;
+  }
+  b.vy+=0.3;b.y+=b.vy;
+  if(b.y>=GROUND-b.h){b.y=GROUND-b.h;b.vy=0;b.onGround=true;}
+
+  b.fire-=dt;
+  if(b.fire<=0){
+   b.fire=Math.max(0.95, 1.85-levelNo*0.015);
+   const dir=player.x<b.x?-1:1;
+   level.items.push({
+    type:'bossfire',x:b.x+(dir>0?b.w:-16),y:b.y+28,w:16,h:16,
+    vx:dir*4.2,vy:-0.4
+   });
+   beep(170,.07,'sawtooth');
+  }
+
+  if(overlap(player,b)){
+   const stomp=(player.vy>0&&(player.y+player.h-b.y)<26);
+   if(player.star>0){
+    b.hp-=dt*4;
+    if(b.hp<=0){b.dead=true;addScore(2500,b.x,b.y);}
+   }else if(stomp){
+    b.hp--;
+    player.vy=-8.8;player.x+=player.x<b.x?-18:18;
+    shake=7;beep(220,.09);
+    popText('BOSS HIT!',b.x,b.y-15,'#ff5c77');
+    if(b.hp<=0){
+     b.dead=true;addScore(2500,b.x,b.y);
+     toast('👑 BOSS VANQUISHED!');
+    }
+   }else{
+    damage();
+   }
+  }
+ }
+}
+
+/* ---------- MOVERS, SPRINGS & PENDULUM TRAPS ---------- */
+function updateWorldMechanics(dt){
+ // Moving platforms
+ for(const m of level.movers){
+  m.t+=dt*m.spd;
+  const newX=m.baseX+Math.sin(m.t)*m.rangeX;
+  m.vx=newX-m.x;
+  m.x=newX;
+ }
+ // Spring pads
+ for(const sp of level.springs){
+  if(sp.anim>0)sp.anim=Math.max(0,sp.anim-dt*4);
+  if(overlap(player,sp)&&player.vy>=0){
+   player.vy=-11.8;
+   player.onGround=false;
+   player.jumpsLeft=save.upgrades.doubleJump?2:1;
+   sp.anim=1;
+   beep(480,.08,'triangle');
+  }
+ }
+ // Swinging Pendulums in Danger Zone
+ for(const pd of level.pendulums){
+  pd.phase+=dt*pd.speed;
+  pd.angle=Math.sin(pd.phase)*0.85;
+  const bobX=pd.pivotX+Math.sin(pd.angle)*pd.len;
+  const bobY=pd.pivotY+Math.cos(pd.angle)*pd.len;
+  const hitBox={x:bobX-14,y:bobY-14,w:28,h:28};
+  if(overlap(player,hitBox))damage();
+ }
+ // Checkpoint Flag
+ const cp=level.checkpoint;
+ if(cp&&!cp.reached&&overlap(player,cp)){
+  cp.reached=true;
+  addScore(500,cp.x,cp.y);
+  toast('🚩 CHECKPOINT SAVED!');
+  beep(587,.07);setTimeout(()=>beep(880,.12),75);
+ }
+ // Danger Zone Entry Banner
+ const inDanger=(player.x>=level.dangerStart&&player.x<=level.dangerEnd);
+ ui.dangerBadge.style.display=inDanger?'inline-block':'none';
+ if(inDanger&&!level.dangerWarned){
+  level.dangerWarned=true;
+  ui.dangerBanner.style.opacity=1;
+  ui.dangerBanner.style.transform='translate(-50%,-50%) scale(1)';
+  spookySound();
+  setTimeout(()=>{
+   ui.dangerBanner.style.opacity=0;
+   ui.dangerBanner.style.transform='translate(-50%,-50%) scale(.9)';
+  },2100);
+ }
+}
+
+/* ---------- PLAYER PHYSICS UPDATE ---------- */
+function updatePlayer(dt){
+ const p=player;
+ p.inv=Math.max(0,p.inv-dt);
+ p.star=Math.max(0,p.star-dt);
+ p.fireCooldown=Math.max(0,p.fireCooldown-dt);
+ p.dashTime=Math.max(0,p.dashTime-dt);
+ p.dashCd=Math.max(0,p.dashCd-dt);
+
+ if(comboTimer>0){
+  comboTimer-=dt;
+  if(comboTimer<=0)combo=0;
+ }
+
+ if(p.dashTime<=0){
+  const accel=keys.shift?0.56:0.45;
+  const max=keys.shift?5.6:4.1;
+
+  if(keys.left){p.vx-=accel;p.facing=-1;}
+  if(keys.right){p.vx+=accel;p.facing=1;}
+  if(!keys.left&&!keys.right)p.vx*=p.onGround?0.78:0.92;
+
+  p.vx=clamp(p.vx,-max,max);
+  p.crouch=keys.down&&p.onGround;
+  if(p.crouch)p.vx*=0.5;
+ }
+
+ p.jumpBuffer=Math.max(0,p.jumpBuffer-dt);
+
+ // Ground Jump or Mid-Air Double Jump!
+ if(p.jumpBuffer>0){
+  if(p.onGround||p.coyote>0){
+   const boost=p.form==='small'?1:1.08;
+   p.vy=(keys.shift?-9.5:-8.8)*boost;
+   p.onGround=false;p.coyote=0;p.jumpBuffer=0;
+   p.jumpsLeft=save.upgrades.doubleJump?1:0;
+   beep(340,.05);
+  }else if(p.jumpsLeft>0){
+   p.vy=-8.2;
+   p.jumpsLeft--;
+   p.jumpBuffer=0;
+   beep(460,.05,'triangle');
+   for(let i=0;i<5;i++){
+    particles.push({x:p.x+p.w/2,y:p.y+p.h,vx:(Math.random()-.5)*4,vy:Math.random()*2,life:.35,char:'•',color:'#fff'});
+   }
+  }
+ }
+
+ if(p.dashTime<=0){
+  p.vy+=0.42;
+  if(!keys.jump&&p.vy<-3)p.vy+=0.26;
+ }
+
+ p.x+=p.vx;resolveX(p);
+ p.y+=p.vy;resolveY(p,true);
+
+ if(p.onGround){
+  p.coyote=0.12;
+  p.jumpsLeft=save.upgrades.doubleJump?2:1;
+ }else{
+  p.coyote=Math.max(0,p.coyote-dt);
+ }
+
+ if(state==='bonus'){
+  p.x=clamp(p.x,16,W-40);
+  // Exit pipe on right side of Subterra room
+  if(p.x>W-115&&p.onGround)exitBonus();
+  return;
+ }
+
+ if(p.x<cameraX+8)p.x=cameraX+8;
+
+ for(const h of level.hazards)if(overlap(p,h))damage();
+ if(p.y>H+70)die();
+
+ if(p.x>level.finishX&&!level.bosses.some(b=>!b.dead))completeLevel();
+
+ if(keys.down&&p.onGround){
+  for(const pipe of level.pipes){
+   if(pipe.active&&!pipe.hidden&&Math.abs(p.x+p.w/2-(pipe.x+pipe.w/2))<28&&
+      Math.abs(p.y+p.h-pipe.y)<10)enterBonus(pipe);
+  }
+ }
+}
+
+/* ---------- MAIN LOOP ---------- */
+function update(dt){
+ if(state==='pipeIn'||state==='pipeOut'){updateBonusTransition(dt);return;}
+ if(state!=='play'&&state!=='bonus')return;
+
+ // Scary lightning flashes in horror biomes or Danger Zones
+ if(level&&(level.biome.scary||(player.x>=level.dangerStart&&player.x<=level.dangerEnd))){
+  if(Math.random()<0.004)lightningFlash=0.65;
+ }
+ if(lightningFlash>0)lightningFlash=Math.max(0,lightningFlash-dt*2.2);
+
+ if(state==='play'){
+  timeAcc+=dt;
+  if(timeAcc>=1){
+   timeAcc-=1;timeLeft--;
+   ui.time.textContent=timeLeft;
+   if(timeLeft<=0)die();
+  }
+  updateWorldMechanics(dt);
+  updatePlayer(dt);
+  updateItems(dt);
+  updateProjectiles(dt);
+  updateEnemies(dt);
+  updateBosses(dt);
+
+  cameraX+=(player.x-260-cameraX)*Math.min(1,dt*7);
+  cameraX=clamp(cameraX,0,Math.max(0,level.width-W));
+ }else if(state==='bonus'){
+  // FIXED: Player can now freely move and jump in Subterra room!
+  updatePlayer(dt);
+  updateItems(dt);
+ }
+
+ // Weather update
+ for(const w of weather){
+  w.x+=w.vx;w.y+=w.vy;
+  if(w.y>H)w.y=-10;
+  if(w.y<-15)w.y=H+10;
+  if(w.x<0)w.x=W;
+  if(w.x>W)w.x=0;
+ }
+
+ // Particles & Floating Text
+ for(let i=particles.length-1;i>=0;i--){
+  const p=particles[i];
+  p.x+=p.vx||0;p.y+=p.vy||0;p.vy+=0.12;p.life-=dt;
+  if(p.life<=0)particles.splice(i,1);
+ }
+ for(let i=floatingTexts.length-1;i>=0;i--){
+  const ft=floatingTexts[i];
+  ft.y+=ft.vy;ft.life-=dt;
+  if(ft.life<=0)floatingTexts.splice(i,1);
+ }
+}
+
+/* ---------- RENDERING ---------- */
+function px(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))}
+
+function drawBackground(){
+ const b=level?.biome||BIOMES[0];
+ const inDanger=level&&player&&(player.x>=level.dangerStart&&player.x<=level.dangerEnd);
+
+ ctx.fillStyle=inDanger?'#14050c':b.sky;
+ ctx.fillRect(0,0,W,H);
+
+ if(lightningFlash>0){
+  ctx.fillStyle=`rgba(255,240,245,${lightningFlash*0.45})`;
+  ctx.fillRect(0,0,W,H);
+ }
+
+ // Celestial Body (Blood Moon in Scary levels, Sun/Moon in others)
+ if(b.scary||inDanger){
+  ctx.fillStyle='#d91b38';
+  ctx.beginPath();ctx.arc(760,96,46,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,30,60,.2)';
+  ctx.beginPath();ctx.arc(760,96,64,0,Math.PI*2);ctx.fill();
+  // Glowing red eyes watching from the dark background!
+  for(let i=0;i<6;i++){
+   const ex=((i*210-cameraX*0.12)%1050+1050)%1050-40;
+   const ey=170+(i%3)*55;
+   if(Math.sin(performance.now()*0.003+i)>-0.4){
+    px(ex,ey,5,3,'#ff1e38');px(ex+10,ey,5,3,'#ff1e38');
+   }
+  }
+ }else{
+  ctx.fillStyle='#ffe678';
+  ctx.beginPath();ctx.arc(780,88,36,0,Math.PI*2);ctx.fill();
+  for(let i=0;i<7;i++){
+   const cx=((i*190-cameraX*0.15)%1100+1100)%1100-70;
+   px(cx,62+(i%3)*34,52,14,'rgba(255,255,255,.85)');
+   px(cx+12,52+(i%3)*34,30,16,'rgba(255,255,255,.85)');
+  }
+ }
+
+ // Parallax Distant Mountains / Ruins
+ ctx.fillStyle=b.scary||inDanger?'rgba(10,4,14,.65)':'rgba(0,0,0,.18)';
+ for(let i=0;i<9;i++){
+  const mx=((i*160-cameraX*0.22)%1200+1200)%1200-120;
+  const mh=90+(i%3)*38;
+  ctx.beginPath();
+  ctx.moveTo(mx,GROUND);
+  ctx.lineTo(mx+85,GROUND-mh);
+  ctx.lineTo(mx+170,GROUND);
+  ctx.fill();
+ }
+}
+
+function drawScenery(){
+ for(const sc of level.scenery){
+  const x=sc.x-cameraX;
+  if(x<-80||x>W+80)continue;
+  if(sc.type==='tree'){
+   px(x+12,GROUND-58,12,58,'#61391f');
+   px(x-4,GROUND-88,44,34,'#2d9e40');
+   px(x+4,GROUND-102,28,20,'#3ec254');
+  }else if(sc.type==='bush'){
+   px(x,GROUND-20,38,20,'#32a846');
+  }else if(sc.type==='deadtree'){
+   // Creepy twisted tree with glowing eyes in hollow!
+   px(x+10,GROUND-68,14,68,'#1f141c');
+   px(x-6,GROUND-62,18,6,'#1f141c');
+   px(x+22,GROUND-54,18,6,'#1f141c');
+   px(x+13,GROUND-42,3,3,'#ff2442');px(x+19,GROUND-42,3,3,'#ff2442');
+  }else if(sc.type==='tomb'){
+   px(x+4,GROUND-34,26,34,'#575366');
+   px(x+8,GROUND-38,18,6,'#575366');
+   px(x+15,GROUND-28,4,16,'#24202b');px(x+10,GROUND-23,14,4,'#24202b');
+  }else if(sc.type==='skullpole'){
+   px(x+11,GROUND-54,6,54,'#3b2316');
+   px(x+5,GROUND-68,18,16,'#e3dac9');
+   px(x+8,GROUND-62,4,4,'#ff1a35');px(x+16,GROUND-62,4,4,'#ff1a35');
+  }
+ }
+}
+
+function drawWorld(){
+ if(state==='bonus'){drawBonus();return;}
+
+ const b=level.biome;
+ drawScenery();
+
+ // Danger Zone Boundary Pillars
+ for(const boundaryX of [level.dangerStart,level.dangerEnd]){
+  const bx=boundaryX-cameraX;
+  if(bx>-60&&bx<W+60){
+   px(bx,GROUND-130,14,130,'#3d0b14');
+   px(bx-12,GROUND-148,38,22,'#ff1e38');
+   ctx.fillStyle='#fff';ctx.font='bold 10px monospace';
+   ctx.fillText('DANGER',bx-10,GROUND-134);
+  }
+ }
+
+ // Checkpoint Flag
+ const cp=level.checkpoint;
+ if(cp){
+  const cx=cp.x-cameraX;
+  px(cx,cp.y,5,cp.h,'#d9e2ec');
+  px(cx+5,cp.y+4,30,20,cp.reached?'#37d67a':'#ff9f1c');
+ }
+
+ // Solids & Platforms
+ for(const s of level.solids){
+  if(s.x+s.w<cameraX||s.x>cameraX+W)continue;
+  const x=s.x-cameraX;
+  px(x,s.y,s.w,s.h,b.ground);
+  px(x,s.y,s.w,Math.min(10,s.h),b.top);
+  for(let xx=0;xx<s.w;xx+=36){
+   ctx.strokeStyle='rgba(0,0,0,.28)';
+   ctx.strokeRect(x+xx+.5,s.y+.5,Math.min(36,s.w-xx),Math.min(28,s.h));
+  }
+ }
+
+ // Moving Bridges
+ for(const m of level.movers){
+  const x=m.x-cameraX;
+  if(x<-100||x>W+100)continue;
+  px(x,m.y,m.w,m.h,'#d49b35');
+  px(x+4,m.y+4,m.w-8,m.h-8,'#85581A');
+ }
+
+ // Spring Pads
+ for(const sp of level.springs){
+  const x=sp.x-cameraX;
+  const comp=sp.anim*7;
+  px(x+4,sp.y+6+comp,sp.w-8,12-comp,'#aaa');
+  px(x,sp.y+comp,sp.w,7,'#ff3855');
+ }
+
+ // Hazards
+ for(const h of level.hazards){
+  const x=h.x-cameraX;
+  if(x<-100||x>W+100)continue;
+  if(h.type==='lava'||h.type==='acid'){
+   px(x,h.y,h.w,20,h.type==='acid'?'#39d62b':'#e03c26');
+   px(x,h.y-4,h.w,6,h.type==='acid'?'#9eff54':'#ffb52e');
+  }else{
+   const col=h.type==='bloodspike'?'#ff294d':'#dce6ef';
+   for(let q=0;q<h.w;q+=18){
+    ctx.fillStyle=col;ctx.beginPath();
+    ctx.moveTo(x+q,h.y+h.h);
+    ctx.lineTo(x+q+9,h.y-9);
+    ctx.lineTo(x+q+18,h.y+h.h);ctx.fill();
+   }
+  }
+ }
+
+ // Swinging Pendulum Saws in Danger Zone
+ for(const pd of level.pendulums){
+  const px0=pd.pivotX-cameraX;
+  if(px0<-150||px0>W+150)continue;
+  const bobX=px0+Math.sin(pd.angle)*pd.len;
+  const bobY=pd.pivotY+Math.cos(pd.angle)*pd.len;
+  ctx.strokeStyle='#888';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(px0,pd.pivotY);ctx.lineTo(bobX,bobY);ctx.stroke();
+  ctx.lineWidth=1;
+  ctx.fillStyle='#ff2e4c';
+  ctx.beginPath();ctx.arc(bobX,bobY,16,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#e6edf5';
+  ctx.beginPath();ctx.arc(bobX,bobY,9,0,Math.PI*2);ctx.fill();
+ }
+
+ drawItems(level.items);
+
+ // Pipes
+ for(const p of level.pipes){
+  if(p.hidden)continue;
+  const x=p.x-cameraX;
+  px(x,p.y,54,58,'#23829c');
+  px(x-4,p.y,62,14,'#44c2db');
+  px(x+10,p.y+14,34,44,'#165e73');
+  if(p.bonus){
+   ctx.fillStyle='#ffd83d';ctx.font='bold 10px monospace';
+   ctx.fillText('▼BONUS',x+6,p.y-6);
+  }
+ }
+
+ // Finish Goal Flag & Castle
+ const fx=level.finishX-cameraX;
+ px(fx,GROUND-205,7,205,'#e8edf2');
+ px(fx+7,GROUND-205,46,28,'#ff3b56');
+ px(fx+65,GROUND-118,104,118,'#6e7885');
+ px(fx+98,GROUND-58,38,58,'#1b2028');
+}
+
+function drawItems(list){
+ for(const b of list){
+  if(b.dead)continue;
+  const x=b.x-(state==='bonus'?0:cameraX);
+  const y=b.y-(b.bump>0?Math.sin(b.bump*.2)*6:0);
+
+  if(b.type==='brick'){
+   px(x,y,36,36,'#a85b2b');
+   ctx.strokeStyle='#572916';ctx.strokeRect(x+2,y+2,32,32);
+  }else if(b.type==='core'){
+   px(x,y,36,36,b.used?'#695843':'#e89d25');
+   ctx.fillStyle='#fff';ctx.font='bold 22px monospace';
+   ctx.fillText(b.used?'':'?',x+11,y+26);
+  }else if(b.type==='coin'){
+   ctx.fillStyle='#ffd42d';ctx.beginPath();
+   ctx.ellipse(x+9,y+9+Math.sin(b.t||0)*3,7,10,0,0,Math.PI*2);ctx.fill();
+  }else if(b.type==='growth'){
+   px(x+4,y+2,20,13,'#48d960');px(x+7,y+15,14,13,'#f0c999');
+  }else if(b.type==='blaze'){
+   px(x+8,y+10,12,18,'#ff5d2e');
+   px(x+2,y+4,10,10,'#ffe14b');px(x+16,y+4,10,10,'#ffe14b');
+  }else if(b.type==='nova'){
+   ctx.fillStyle='#ffe447';ctx.beginPath();
+   for(let i=0;i<10;i++){
+    const a=-Math.PI/2+i*Math.PI/5,r=i%2?6:14;
+    ctx.lineTo(x+14+Math.cos(a)*r,y+14+Math.sin(a)*r);
+   }
+   ctx.fill();
+  }else if(b.type==='fireball'){
+   ctx.fillStyle=b.strong?'#ff6a2b':'#72efdd';
+   ctx.beginPath();ctx.arc(x+6,y+6,b.strong?7:5,0,Math.PI*2);ctx.fill();
+  }else if(b.type==='bossfire'){
+   ctx.fillStyle='#ff2442';ctx.beginPath();ctx.arc(x+8,y+8,9,0,Math.PI*2);ctx.fill();
+   px(x+4,y+2,8,12,'#ffd83d');
+  }
+ }
+}
+
+function drawBonus(){
+ ctx.fillStyle='#090c1f';ctx.fillRect(0,0,W,H);
+ px(0,GROUND,W,H-GROUND,'#2d2542');
+ for(const s of solidList()){
+  px(s.x,s.y,s.w,s.h,'#4e3e6b');
+  px(s.x,s.y,s.w,6,'#72efdd');
+ }
+ // Exit Pipe on right
+ px(W-95,GROUND-64,56,64,'#27a862');
+ px(W-100,GROUND-64,66,14,'#4ce68d');
+ ctx.fillStyle='#ffd83d';ctx.font='bold 14px monospace';
+ ctx.fillText('EXIT ▶',W-92,GROUND-72);
+ ctx.fillStyle='#72efdd';ctx.font='bold 18px monospace';
+ ctx.fillText('💎 SUBTERRA TREASURE ZONE — COLLECT & WALK RIGHT TO EXIT!',32,48);
+
+ drawItems(bonusItems);
+}
+
+/* ---------- DRAW ANIMALS & SCARY CREATURES ---------- */
+function drawEnemies(){
+ if(state==='bonus')return;
+ for(const e of level.enemies){
+  const x=e.x-cameraX;
+  if(x<-80||x>W+80||e.dead)continue;
+
+  if(e.type==='boar'){
+   // Wild Boar with tusks & red angry eyes when charging
+   px(x+2,e.y+6,34,18,e.charging?'#7a1c1c':'#5c3828');
+   px(x+(e.vx<0?0:26),e.y+14,8,5,'#fff'); // Sharp White Tusks
+   px(x+(e.vx<0?6:26),e.y+10,4,4,e.charging?'#ff1e38':'#ffd83d');
+   px(x+6,e.y+24,6,6,'#2b1810');px(x+24,e.y+24,6,6,'#2b1810');
+  }else if(e.type==='spider'){
+   // Silk web thread from ceiling + creepy legs + red eyes
+   ctx.strokeStyle='rgba(255,255,255,.45)';
+   ctx.beginPath();ctx.moveTo(x+15,0);ctx.lineTo(x+15,e.y+6);ctx.stroke();
+   px(x+5,e.y+6,20,16,'#17131c');
+   px(x+8,e.y+12,4,4,'#ff1736');px(x+18,e.y+12,4,4,'#ff1736');
+   // 8 Legs
+   for(let l=0;l<3;l++){
+    px(x-4,e.y+6+l*5,6,3,'#2b2333');
+    px(x+28,e.y+6+l*5,6,3,'#2b2333');
+   }
+  }else if(e.type==='ghost'){
+   // Scary Haunted Wraith
+   ctx.fillStyle='rgba(215,230,255,.82)';
+   ctx.fillRect(x+4,e.y+4,22,26);
+   px(x+8,e.y+10,5,6,'#09040f');px(x+17,e.y+10,5,6,'#09040f');
+   px(x+9,e.y+12,3,3,'#ff1e42');px(x+18,e.y+12,3,3,'#ff1e42');
+   px(x+11,e.y+20,8,7,'#09040f'); // Screaming mouth
+  }else if(e.type==='wolf'){
+   px(x+2,e.y+8,34,14,'#343746');
+   px(x+(e.vx<0?0:24),e.y+2,14,12,'#494d61');
+   px(x+(e.vx<0?3:31),e.y+5,3,3,'#ff294d');
+   px(x+4,e.y+22,6,6,'#1f212b');px(x+26,e.y+22,6,6,'#1f212b');
+  }else if(e.type==='frog'){
+   px(x+4,e.y+6,20,16,'#34c759');
+   px(x+6,e.y+2,5,5,'#fff');px(x+17,e.y+2,5,5,'#fff');
+   px(x+8,e.y+4,3,3,'#111');px(x+19,e.y+4,3,3,'#111');
+   px(x+10,e.y+12,8,6,'#a5f2b8');
+  }else if(e.type==='scorpion'){
+   px(x+4,e.y+12,22,14,'#b84a24');
+   px(x+22,e.y+2,6,12,'#d95f32'); // Tail stinger
+   px(x+18,e.y,8,5,'#ff1e38');
+   px(x+7,e.y+15,3,3,'#111');
+  }else if(e.type==='shell'){
+   px(x+2,e.y+8,26,22,e.rolling?'#4ce0e0':'#2f9e6e');
+   px(x+7,e.y+3,16,10,'#1f6949');
+   px(x+9,e.y+6,3,3,'#fff');px(x+18,e.y+6,3,3,'#fff');
+  }else{
+   // Bat
+   const wing=Math.sin(e.t*14)*6;
+   px(x+8,e.y+6,12,12,'#4b2d73');
+   px(x,e.y+4+wing,8,8,'#6c42a3');px(x+20,e.y+4+wing,8,8,'#6c42a3');
+   px(x+10,e.y+9,2,2,'#ff2e4c');px(x+16,e.y+9,2,2,'#ff2e4c');
+  }
+ }
+}
+
+function drawBosses(){
+ if(state==='bonus')return;
+ for(const b of level.bosses){
+  if(b.dead)continue;
+  const x=b.x-cameraX,y=b.y;
+  if(x<-120||x>W+120)continue;
+  // Horns & Demon Armor
+  px(x+4,y+16,54,60,b.major?'#591224':'#3d2459');
+  px(x+10,y+2,42,24,b.major?'#8c1d38':'#5c3785');
+  px(x+4,y-8,8,14,'#ffd83d');px(x+50,y-8,8,14,'#ffd83d'); // Horns
+  px(x+16,y+9,9,8,'#ff2442');px(x+37,y+9,9,8,'#ff2442');
+  px(x+18,y+34,26,9,'#ff9f1c');
+  // Boss HP Bar
+  px(x-6,y-22,74,9,'#111');
+  px(x-4,y-20,70*Math.max(0,b.hp/b.maxHp),5,'#ff294d');
+  ctx.fillStyle='#fff';ctx.font='bold 10px monospace';
+  ctx.fillText(b.name,x-8,y-26);
+ }
+}
+
+function drawPlayer(){
+ const p=player;
+ const x=Math.round(p.x-(state==='bonus'?0:cameraX)),y=Math.round(p.y);
+ if(p.inv>0&&p.star<=0&&p.dashTime<=0&&Math.floor(performance.now()/70)%2===0)return;
+
+ // Shield aura
+ if(p.shield>0){
+  ctx.strokeStyle='rgba(114,239,221,.75)';
+  ctx.lineWidth=2;
+  ctx.strokeRect(x-4,y-4,p.w+8,p.h+8);
+  ctx.lineWidth=1;
+ }
+
+ const body=p.star>0&&(Math.floor(performance.now()/55)%2)?'#ffd42d':
+  p.dashTime>0?'#72efdd':p.form==='fire'?'#fff':'#286bb5';
+ const shirt=p.form==='fire'?'#ff5722':'#e63946';
+
+ if(p.form==='small'){
+  px(x+3,y,18,7,shirt);
+  px(x+5,y+7,15,8,'#f2b896');
+  px(x+(p.facing>0?15:6),y+9,3,3,'#111');
+  px(x+4,y+15,16,10,shirt);
+  px(x+3,y+18,18,9,body);
+  px(x+2,y+26,8,4,'#4a3429');px(x+14,y+26,8,4,'#4a3429');
+ }else{
+  px(x+4,y+2,18,9,shirt);
+  px(x+5,y+11,16,11,'#f2b896');
+  px(x+(p.facing>0?16:6),y+14,4,4,'#111');
+  px(x+4,y+22,18,16,shirt);
+  px(x+2,y+28,22,20,body);
+  px(x+1,y+48,10,6,'#4a3429');px(x+15,y+48,10,6,'#4a3429');
+ }
+}
+
+function drawWeatherAndVignette(){
+ const wType=level?.biome?.weather||'pollen';
+ for(const w of weather){
+  if(wType==='rain'){
+   px(w.x,w.y,2,10,'rgba(160,210,255,.55)');
+  }else if(wType==='snow'){
+   px(w.x,w.y,3,3,'rgba(255,255,255,.8)');
+  }else if(wType==='ash'){
+   px(w.x,w.y,3,3,'rgba(255,90,40,.65)');
+  }else if(wType==='fog'){
+   px(w.x,w.y,w.size,14,'rgba(165,140,210,.12)');
+  }else{
+   px(w.x,w.y,3,3,'rgba(255,240,150,.55)');
+  }
+ }
+
+ // Scary / Danger Zone Vignette Overlay
+ const inDanger=level&&player&&(player.x>=level.dangerStart&&player.x<=level.dangerEnd);
+ if(level&&(level.biome.scary||inDanger)){
+  const grad=ctx.createRadialGradient(W/2,H/2,H*0.28,W/2,H/2,W*0.62);
+  grad.addColorStop(0,'rgba(0,0,0,0)');
+  grad.addColorStop(1,inDanger?'rgba(70,0,15,.58)':'rgba(8,2,16,.52)');
+  ctx.fillStyle=grad;
+  ctx.fillRect(0,0,W,H);
+ }
+}
+
+function draw(){
+ drawBackground();
+ if(!level)return;
+
+ ctx.save();
+ if(shake>0){
+  ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
+  shake*=0.86;
+  if(shake<0.4)shake=0;
+ }
+
+ drawWorld();
+ drawEnemies();
+ drawBosses();
+ drawPlayer();
+
+ for(const p of particles){
+  ctx.fillStyle=p.color||'#fff';ctx.font='bold 15px monospace';
+  ctx.fillText(p.char||'•',p.x-(state==='bonus'?0:cameraX),p.y);
+ }
+ for(const ft of floatingTexts){
+  ctx.fillStyle=ft.color;ctx.font='bold 14px monospace';
+  ctx.fillText(ft.txt,ft.x-(state==='bonus'?0:cameraX),ft.y);
+ }
+
+ ctx.restore();
+ drawWeatherAndVignette();
+
+ if(state==='pipeIn'||state==='pipeOut'){
+  ctx.fillStyle='rgba(0,0,0,.8)';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#72efdd';ctx.font='bold 22px monospace';
+  ctx.fillText(state==='pipeIn'?'ENTERING SUBTERRA ZONE...':'RETURNING TO SURFACE...',300,265);
+ }
+}
+
+function loop(t){
+ const dt=Math.min(0.033,(t-last)/1000||0);
+ last=t;update(dt);draw();
+ requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ---------- KEYBOARD CONTROLS ---------- */
+addEventListener('keydown',e=>{
+ if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space','KeyA','KeyD','KeyW','KeyS','ShiftLeft','ShiftRight','KeyF','KeyE'].includes(e.code))
+  e.preventDefault();
+
+ if(e.code==='ArrowLeft'||e.code==='KeyA')keys.left=true;
+ if(e.code==='ArrowRight'||e.code==='KeyD')keys.right=true;
+ if(e.code==='ArrowDown'||e.code==='KeyS')keys.down=true;
+ if(e.code==='ArrowUp'||e.code==='KeyW'||e.code==='Space'){
+  if(!keys.jump)jump();
+  keys.jump=true;
+ }
+ if(e.code==='ShiftLeft'||e.code==='ShiftRight'||e.code==='KeyE'){
+  keys.shift=true;triggerDash();
+ }
+ if(e.code==='KeyF'||e.code==='KeyX')shoot();
+});
+
+addEventListener('keyup',e=>{
+ if(e.code==='ArrowLeft'||e.code==='KeyA')keys.left=false;
+ if(e.code==='ArrowRight'||e.code==='KeyD')keys.right=false;
+ if(e.code==='ArrowDown'||e.code==='KeyS')keys.down=false;
+ if(e.code==='ArrowUp'||e.code==='KeyW'||e.code==='Space')keys.jump=false;
+ if(e.code==='ShiftLeft'||e.code==='ShiftRight'||e.code==='KeyE')keys.shift=false;
+});
+
+/* ---------- MULTI-TOUCH MOBILE CONTROLS ---------- */
+function resetKeys(){
+ keys.left=false;keys.right=false;keys.down=false;keys.jump=false;keys.shift=false;
+ document.querySelectorAll('.btn').forEach(b=>b.classList.remove('active'));
+}
+
+document.querySelectorAll('.btn[data-key]').forEach(btn=>{
+ const k=btn.dataset.key;
+ const press=e=>{
+  e.preventDefault();
+  btn.setPointerCapture?.(e.pointerId);
+  btn.classList.add('active');
+  if(k==='jump')jump();
+  keys[k]=true;
+ };
+ const release=e=>{
+  e.preventDefault();
+  btn.classList.remove('active');
+  keys[k]=false;
+ };
+ btn.addEventListener('pointerdown',press,{passive:false});
+ btn.addEventListener('pointerup',release,{passive:false});
+ btn.addEventListener('pointercancel',release,{passive:false});
+ btn.addEventListener('lostpointercapture',release,{passive:false});
+});
+
+const fireBtn=$('fireBtn');
+fireBtn.addEventListener('pointerdown',e=>{
+ e.preventDefault();fireBtn.setPointerCapture?.(e.pointerId);
+ fireBtn.classList.add('active');shoot();
+},{passive:false});
+fireBtn.addEventListener('pointerup',e=>{e.preventDefault();fireBtn.classList.remove('active')},{passive:false});
+fireBtn.addEventListener('pointercancel',()=>fireBtn.classList.remove('active'));
+
+const dashBtn=$('dashBtn');
+dashBtn.addEventListener('pointerdown',e=>{
+ e.preventDefault();dashBtn.setPointerCapture?.(e.pointerId);
+ dashBtn.classList.add('active');keys.shift=true;triggerDash();
+},{passive:false});
+dashBtn.addEventListener('pointerup',e=>{e.preventDefault();dashBtn.classList.remove('active');keys.shift=false},{passive:false});
+dashBtn.addEventListener('pointercancel',()=>{dashBtn.classList.remove('active');keys.shift=false});
+
+addEventListener('blur',resetKeys);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)resetKeys()});
+document.addEventListener('touchmove',e=>{
+ if(!e.target.closest('.panel'))e.preventDefault();
+},{passive:false});
+
+resizeCanvas();
+</script>
+</body>
+</html>
